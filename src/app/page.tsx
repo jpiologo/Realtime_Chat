@@ -1,32 +1,33 @@
-"use client";
+'use client';
 
-import { client } from "@/lib/client";
-import { useMutation } from "@tanstack/react-query";
-import { nanoid } from "nanoid";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { client } from '@/lib/client';
+import { useMutation } from '@tanstack/react-query';
+import { nanoid } from 'nanoid';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 const ANIMALS = [
-  "bear",
-  "wolf",
-  "elephant",
-  "hawk",
-  "shark",
-  "crocodile",
-  "lion",
-  "tiger",
+  'bear',
+  'wolf',
+  'elephant',
+  'hawk',
+  'shark',
+  'crocodile',
+  'lion',
+  'tiger',
 ];
-const STORAGE_KEY = "chat_username";
+const STORAGE_KEY = 'chat_username';
 
 const generateUsername = () => {
-  const word = ANIMALS[Math.floor(Math.random() * ANIMALS.length)];
+  const word =
+    ANIMALS[Math.floor(Math.random() * ANIMALS.length)];
 
   return `anonymous-${word}-${nanoid(5)}`;
 };
 
 export default function Home() {
-  const [username, setUsername] = useState("");
-  const router = useRouter()
+  const [username, setUsername] = useState('');
+  const router = useRouter();
 
   useEffect(() => {
     const main = () => {
@@ -49,8 +50,8 @@ export default function Home() {
     mutationFn: async () => {
       const res = await client.room.create.post();
 
-      if(res.status === 200){
-        router.push(`/room/${res.data?.roomId}`)
+      if (res.status === 200) {
+        router.push(`/room/${res.data?.roomId}`);
       }
     },
   });
@@ -58,11 +59,11 @@ export default function Home() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-4">
       <div className="w-full max-w-md space-y-8">
-        <div className="text-center space-y-2">
+        <div className="space-y-2 text-center">
           <h1 className="text-2xl font-bold tracking-tight text-green-500">
-            {">"}private_chat
+            {'>'}private_chat
           </h1>
-          <p className="text-zinc-500 text-sm">
+          <p className="text-sm text-zinc-500">
             A private, self-destructive chat room.
           </p>
         </div>
@@ -73,13 +74,16 @@ export default function Home() {
                 Your Identity
               </label>
               <div className="flex items-center gap-3">
-                <div className="flex-1 bg-zinc-950 border border-zinc-800 p-3 text-sm text-zinc-400 font-mono">
+                <div className="flex-1 border border-zinc-800 bg-zinc-950 p-3 font-mono text-sm text-zinc-400">
                   {username}
                 </div>
               </div>
             </div>
 
-            <button onClick={() => createRoom()} className="w-full bg-zinc-100 text-black p-3 text-sm font-bold hover:bg-zinc-50 hover:text-black transition-colors mt-2 cursor-pointer disabled:opacity-50">
+            <button
+              onClick={() => createRoom()}
+              className="mt-2 w-full cursor-pointer bg-zinc-100 p-3 text-sm font-bold text-black transition-colors hover:bg-zinc-50 hover:text-black disabled:opacity-50"
+            >
               CREATE SECURE ROOM
             </button>
           </div>
