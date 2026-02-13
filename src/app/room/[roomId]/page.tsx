@@ -9,7 +9,8 @@ import {
 } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { useParams } from 'next/navigation';
-import { useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
 
 function formatTimeRemaining(seconds: number) {
   const mins = Math.floor(seconds / 60);
@@ -22,6 +23,8 @@ const Page = () => {
   const params = useParams();
   const roomId = params.roomId as string;
 
+  const router = useRouter();
+
   const { username } = useUsername();
   const [input, setInput] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -29,6 +32,45 @@ const Page = () => {
   const [timeRemaining, setTimeRemaining] = useState<
     number | null
   >(null);
+
+  const { data: ttlData } = useQuery({
+    queryKey: ['ttl', roomId],
+    queryFn: async () => {
+      const res = await client.room.ttl.get({
+        query: { roomId },
+      });
+
+      return res.data;
+    },
+  });
+
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    if (ttlData?.ttl !== undefined) {
+      setTimeRemaining(ttlData.ttl);
+    }
+  }, [ttlData]);
+
+  useEffect(() => {
+    if (timeRemaining === null || timeRemaining < 0) return;
+
+    if (timeRemaining === 0) {
+      router.push('/?destroyed=true');
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setTimeRemaining((prev) => {
+        if (prev === null || prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [timeRemaining, router]);
 
   const { data: messages, refetch } = useQuery({
     queryKey: ['messages', roomId],
@@ -64,6 +106,18 @@ const Page = () => {
       if (event === 'chat.message') {
         refetch();
       }
+
+      if (event === 'chat.destroy') {
+        router.push('/?destroyed=true');
+      }
+    },
+  });
+
+  const { mutate: destroyRoom } = useMutation({
+    mutationFn: async () => {
+      await client.room.delete(null, {
+        query: { roomId },
+      });
     },
   });
 
@@ -112,7 +166,9 @@ const Page = () => {
           </div>
         </div>
 
-        <button className="group flex items-center gap-2 rounded bg-zinc-800 px-3 py-1.5 text-xs font-bold text-zinc-400 transition-all hover:cursor-pointer hover:bg-red-600 hover:text-white disabled:opacity-50">
+        <button
+          onClick={() => destroyRoom()}
+          className="group flex items-center gap-2 rounded bg-zinc-800 px-3 py-1.5 text-xs font-bold text-zinc-400 transition-all hover:cursor-pointer hover:bg-red-600 hover:text-white disabled:opacity-50">
           <span className="group-hover:animate-pulse">
             💣
           </span>
@@ -133,7 +189,7 @@ const Page = () => {
         {messages?.messages.map((msg) => (
           <div
             key={msg.id}
-            className={"flex flex-col items-start"}
+            className={'flex flex-col items-start'}
           >
             <div className="group max-w-[80%]">
               <div className="mb-1 flex items-baseline gap-3">
