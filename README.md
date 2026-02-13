@@ -1,15 +1,14 @@
 # 💬 Realtime Chat
 
-## 📖 Descrição do Projeto
+## 📖 Project Overview
 
-**Realtime chat application** developed with modern stacks of the React environment. 
-O projeto demonstra comunicação instantânea entre usuários, com foco em simplicidade, performance e boas práticas.
+**Realtime chat application** developed with modern stacks of the React environment.
 
 This project was inspired from the youtuber **Josh Tried Coding**.
 
 ---
 
-## 🛠 Stack
+## 🛠 Tech Stack
 
 - ⚛ Next.js
 - 📘 TypeScript
