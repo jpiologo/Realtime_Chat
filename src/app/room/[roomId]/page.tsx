@@ -1,5 +1,13 @@
 'use client';
 
+import { useUsername } from '@/hooks/use-username';
+import { client } from '@/lib/client';
+import { useRealtime } from '@/lib/realtime-client';
+import {
+  useMutation,
+  useQuery,
+} from '@tanstack/react-query';
+import { format } from 'date-fns';
 import { useParams } from 'next/navigation';
 import { useRef, useState } from 'react';
 
@@ -14,12 +22,50 @@ const Page = () => {
   const params = useParams();
   const roomId = params.roomId as string;
 
+  const { username } = useUsername();
   const [input, setInput] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const [copyStatus, setCopyStatus] = useState('COPY');
   const [timeRemaining, setTimeRemaining] = useState<
     number | null
   >(null);
+
+  const { data: messages, refetch } = useQuery({
+    queryKey: ['messages', roomId],
+    queryFn: async () => {
+      const res = await client.messages.get({
+        query: { roomId },
+      });
+
+      return res.data;
+    },
+  });
+
+  const { mutate: sendMessage, isPending } = useMutation({
+    mutationFn: async ({ text }: { text: string }) => {
+      await client.messages.post(
+        {
+          sender: username,
+          text,
+        },
+        {
+          query: { roomId },
+        },
+      );
+
+      setInput('');
+    },
+  });
+
+  useRealtime({
+    channels: [roomId],
+    events: ['chat.message', 'chat.destroy'],
+    onData: ({ event }) => {
+      if (event === 'chat.message') {
+        refetch();
+      }
+    },
+  });
 
   const copyLink = () => {
     const url = window.location.href;
@@ -75,7 +121,40 @@ const Page = () => {
       </header>
 
       <div className="scrollbar-thin flex-1 space-y-4 overflow-y-auto p-4">
-        {/* Chat messages will go here */}
+        {messages?.messages.length === 0 && (
+          <div className="flex h-full items-center justify-center">
+            <p className="font-mono text-sm text-zinc-600">
+              No messages yet. Share the room ID to start
+              chatting!
+            </p>
+          </div>
+        )}
+
+        {messages?.messages.map((msg) => (
+          <div
+            key={msg.id}
+            className={"flex flex-col items-start"}
+          >
+            <div className="group max-w-[80%]">
+              <div className="mb-1 flex items-baseline gap-3">
+                <span
+                  className={`text-xs font-bold ${msg.sender === username ? 'text-green-500' : 'text-blue-500'}`}
+                >
+                  {msg.sender === username
+                    ? 'YOU'
+                    : msg.sender}
+                </span>
+                <span className="text-[10px] text-zinc-600">
+                  {format(msg.timestamp, 'HH:mm')}
+                </span>
+              </div>
+
+              <p className="text-sm leading-relaxed break-all text-zinc-300">
+                {msg.text}
+              </p>
+            </div>
+          </div>
+        ))}
       </div>
 
       <div className="border-t border-zinc-800 bg-zinc-900/30 p-4">
@@ -89,7 +168,9 @@ const Page = () => {
               value={input}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && input.trim()) {
-                  //TODO: SEND MESSAGE
+                  sendMessage({
+                    text: input.trim(),
+                  });
                   inputRef.current?.focus();
                 }
               }}
@@ -100,7 +181,16 @@ const Page = () => {
             />
           </div>
 
-          <button className="cursor-pointer bg-zinc-800 px-6 text-sm font-bold text-zinc-400 transition-all hover:text-zinc-200 disabled:cursor-not-allowed disabled:opacity-50">
+          <button
+            onClick={() => {
+              sendMessage({
+                text: input.trim(),
+              });
+              inputRef.current?.focus();
+            }}
+            disabled={!input.trim() || isPending}
+            className="cursor-pointer bg-zinc-800 px-6 text-sm font-bold text-zinc-400 transition-all hover:text-zinc-200 disabled:cursor-not-allowed disabled:opacity-50"
+          >
             SEND
           </button>
         </div>
