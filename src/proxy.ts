@@ -5,11 +5,6 @@ import { nanoid } from 'nanoid';
 export const proxy = async (req: NextRequest) => {
   const pathname = req.nextUrl.pathname;
 
-  const accept = req.headers.get('accept') || '';
-  if (!accept.includes('text/html')) {
-    return NextResponse.next();
-  }
-
   const roomMatch = pathname.match(/^\/room\/([^\/]+)\/?$/);
   if (!roomMatch)
     return NextResponse.redirect(new URL('/', req.url));
